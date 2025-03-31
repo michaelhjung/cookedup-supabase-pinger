@@ -1,0 +1,49 @@
+name: Ping Supabase to Prevent Pausing
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # Runs every day at 9:00 AM UTC
+  workflow_dispatch: # Allows manual triggering from GitHub UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ping Supabase Users Table
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          node -e "
+          (async () => {
+            try {
+              const { createClient } = require('@supabase/supabase-js');
+
+              const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+                auth: { persistSession: false }
+              });
+
+              const { data, error } = await supabase
+                .from('auth.users')
+                .select('id, email')
+                .limit(1);
+
+              if (error) throw error;
+
+              console.log('Ping successful!');
+            } catch (err) {
+              console.error('Error pinging Supabase:', err.message);
+              process.exit(1);
+            }
+          })();
+          "
