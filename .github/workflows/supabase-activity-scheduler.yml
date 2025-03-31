@@ -33,7 +33,7 @@ jobs:
                 auth: { persistSession: false }
               });
 
-              const { data, error } = await supabase.from('users').select();
+              const { data, error } = await supabase.from('recipes').select().limit(1);
 
               if (error) throw error;
 
