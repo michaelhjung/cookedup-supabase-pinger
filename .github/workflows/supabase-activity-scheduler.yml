@@ -2,7 +2,7 @@ name: Ping Supabase to Prevent Pausing
 
 on:
   schedule:
-    - cron: "0 9 * * *" # Runs every day at 9:00 AM UTC
+    - cron: "0 8 * * 1,4" # Runs at 8:00 AM UTC (12:00 AM PST, 1:00 AM PDT) on Mondays and Tuesdays
   workflow_dispatch: # Allows manual triggering from GitHub UI
 
 jobs:
