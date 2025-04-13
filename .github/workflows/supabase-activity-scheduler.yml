@@ -16,31 +16,46 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Ping Supabase Users Table
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      - name: Install Supabase CLI
         run: |
-          node -e "
-          (async () => {
-            try {
-              const { createClient } = require('@supabase/supabase-js');
+          echo "Step: Installing jq"
+          # Ensure jq is installed
+          sudo apt-get install -y jq
 
-              const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
-                auth: { persistSession: false }
-              });
+          echo "Step: Fetching latest Supabase CLI version"
+          # Fetch the latest release tag from GitHub API
+          VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r .tag_name)
 
-              const { data, error } = await supabase.from('recipes').select().limit(1);
+          echo "Step: Extracted version: ${VERSION}"
 
-              if (error) throw error;
+          # Check if the version was correctly extracted
+          if [ -z "${VERSION}" ]; then
+            echo "Error: Could not fetch the version"
+            exit 1
+          fi
 
-              console.log('Ping successful!');
-            } catch (err) {
-              console.error('Error pinging Supabase:', err.message);
-              process.exit(1);
-            }
-          })();
-          "
+          echo "Step: Installing Supabase CLI version: ${VERSION}"
+
+          # Print the version for debugging
+          echo "Installing Supabase CLI version: ${VERSION}"
+
+          # Download and install the latest version of Supabase CLI
+          curl -sL "https://github.com/supabase/cli/releases/download/${VERSION}/supabase_${VERSION#v}_linux_amd64.tar.gz" | tar xz
+          sudo mv supabase /usr/local/bin/supabase
+
+          echo "Step: Supabase CLI installed successfully"
+
+      - name: Run SQL Query to Prevent Pausing
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          echo "Step: Linking Supabase project"
+          # Link the Supabase project using the access token
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+
+          echo "Step: Running SQL query to keep project active"
+          # Run a SQL query to ensure activity is detected by Supabase
+          supabase db query "SELECT NOW();"
+
+          echo "Step: SQL query executed successfully"
