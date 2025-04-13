@@ -18,41 +18,7 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
-          echo "Step: Installing jq"
-          # Ensure jq is installed
-          sudo apt-get install -y jq
-
-          echo "Step: Fetching latest Supabase CLI version"
-          # Fetch the latest release tag from GitHub API
-          VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r .tag_name)
-
-          echo "Step: Extracted version: ${VERSION}"
-
-          # Check if the version was correctly extracted
-          if [ -z "${VERSION}" ]; then
-            echo "Error: Could not fetch the version"
-            exit 1
-          fi
-
-          echo "Step: Installing Supabase CLI version: ${VERSION}"
-
-          # Check if the tarball is in .tar.gz or .tar.xz format
-          DOWNLOAD_URL="https://github.com/supabase/cli/releases/download/${VERSION}/supabase_${VERSION#v}_linux_amd64.tar.gz"
-          RESPONSE=$(curl -I -s $DOWNLOAD_URL | head -n 1)
-
-          if echo "$RESPONSE" | grep -q "200 OK"; then
-            echo "Downloading .tar.gz version of Supabase CLI"
-            curl -sL "$DOWNLOAD_URL" | tar xz
-          else
-            DOWNLOAD_URL="https://github.com/supabase/cli/releases/download/${VERSION}/supabase_${VERSION#v}_linux_amd64.tar.xz"
-            echo "Downloading .tar.xz version of Supabase CLI"
-            curl -sL "$DOWNLOAD_URL" | tar xJ
-          fi
-
-          # Move the extracted CLI to the correct location
-          sudo mv supabase /usr/local/bin/supabase
-
-          echo "Step: Supabase CLI installed successfully"
+          npm install -g supabase
 
       - name: Run SQL Query to Prevent Pausing
         env:
