@@ -12,37 +12,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
       - name: Install Supabase CLI
         run: |
           echo "Step: Installing Supabase CLI"
 
-          # Download the latest Supabase CLI
-          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_2.20.12_linux_amd64.tar.gz -o supabase-cli.tar.gz
+          # Fetch the latest release details from the GitHub API
+          VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r .tag_name)
 
-          # Extract the downloaded tarball
-          tar -xzf supabase-cli.tar.gz
+          echo "Step: Extracted version: ${VERSION}"
+
+          # Get the appropriate asset (looking for linux_amd64.tar.gz or linux_amd64.tar.xz)
+          ASSET_URL=$(curl -s https://api.github.com/repos/supabase/cli/releases/tags/${VERSION} | jq -r '.assets[] | select(.name | test("linux_amd64.*\\.tar\\.gz$")) | .browser_download_url')
+
+          if [ -z "$ASSET_URL" ]; then
+            # If no .tar.gz found, try .tar.xz
+            ASSET_URL=$(curl -s https://api.github.com/repos/supabase/cli/releases/tags/${VERSION} | jq -r '.assets[] | select(.name | test("linux_amd64.*\\.tar\\.xz$")) | .browser_download_url')
+          fi
+
+          echo "Step: Downloading from ${ASSET_URL}"
+
+          # Download and extract the correct asset
+          curl -sL $ASSET_URL | tar -xzf -
 
           # Move the CLI to a location in the PATH
           sudo mv supabase /usr/local/bin/
 
           # Verify installation
-            supabase --version
+          supabase --version
 
       - name: Run SQL Query to Prevent Pausing
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          echo "Step: Linking Supabase project"
           # Link the Supabase project using the access token
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
 
-          echo "Step: Running SQL query to keep project active"
           # Run a SQL query to ensure activity is detected by Supabase
           supabase db query "SELECT NOW();"
-
-          echo "Step: SQL query executed successfully"
