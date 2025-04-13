@@ -18,7 +18,19 @@ jobs:
 
       - name: Install Supabase CLI
         run: |
-          npm install -g supabase
+          echo "Step: Installing Supabase CLI"
+
+          # Download the latest Supabase CLI
+          curl -sL https://github.com/supabase/cli/releases/latest/download/supabase_2.20.12_linux_amd64.tar.gz -o supabase-cli.tar.gz
+
+          # Extract the downloaded tarball
+          tar -xzf supabase-cli.tar.gz
+
+          # Move the CLI to a location in the PATH
+          sudo mv supabase /usr/local/bin/
+
+          # Verify installation
+            supabase --version
 
       - name: Run SQL Query to Prevent Pausing
         env:
